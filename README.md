@@ -10,13 +10,6 @@ A desktop GUI tool (built with [NiceGUI](https://nicegui.io/) + Selenium/Firefox
 
 Optionally, it can also save a raw HTML snapshot of each cited source page and a screenshot of the AI Overview itself, for later manual verification if Google changes its markup.
 
-## Requirements
-
-- Python 3.10+
-- [Mozilla Firefox](https://www.mozilla.org/firefox/) installed
-
-That's it for drivers: this project relies on Selenium's built-in **Selenium Manager** (standard since Selenium 4.6+), which detects your installed Firefox and downloads the matching `geckodriver` automatically the first time the app runs. Nothing to download or put on your PATH by hand.
-
 ## Installation instructions
 
 Prebuilt installers are attached to each [release](https://github.com/tomkuncoro-yk/GAOS/releases/latest). Firefox still needs to be installed separately either way.
@@ -43,6 +36,8 @@ Prebuilt installers are attached to each [release](https://github.com/tomkuncoro
 7. The first time you start a scrape, macOS may also ask for permission for the app to control/automate Firefox. Click **Allow** — this is normal; it's how the app drives the browser.
 
 ## Run from source
+
+Needs Python 3.10+ (plus Firefox, as above). Selenium downloads the matching `geckodriver` automatically the first time the app runs — nothing else to install for that.
 
 ```bash
 git clone https://github.com/tomkuncoro-yk/GAOS.git
