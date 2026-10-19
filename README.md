@@ -42,13 +42,15 @@ Neither installer is digitally signed (that requires a paid developer certificat
 
 1. Download `GoogleAIOverviewScraper.dmg` from the release page.
 2. Double-click it to mount the disk image, then drag the app into **Applications**.
-3. First launch: Gatekeeper will block it, either with "cannot be opened because the developer cannot be verified" or (on newer macOS) "is damaged and can't be opened" — despite the wording, the app isn't actually damaged, this is just Gatekeeper's blanket message for unsigned apps. Fix it one of two ways:
-   - **Right-click** (or Control-click) the app in Applications → **Open** → confirm **Open** in the dialog that appears. Only needed once.
-   - If that still refuses it, open **Terminal** and run:
-     ```bash
-     xattr -cr /Applications/GoogleAIOverviewScraper.app
-     ```
-     then try opening it again.
+3. Open it. macOS will say it's "from an unidentified developer" (or, on newer macOS, "is damaged and can't be opened" — despite the wording, the app isn't actually damaged, it's the same Gatekeeper block).
+4. Go to the Apple menu → **System Settings** → **Privacy & Security**, scroll down to the **Security** section, and click **Open Anyway** next to the message about the blocked app.
+5. Try opening it again and confirm **Open** in the dialog that appears.
+6. If step 4 doesn't show an "Open Anyway" option at all, open **Terminal** and run:
+   ```bash
+   xattr -cr /Applications/GoogleAIOverviewScraper.app
+   ```
+   then try opening it again.
+7. The first time you start a scrape, macOS may also ask for permission for the app to control/automate Firefox. Click **Allow** — this is normal; it's how the app drives the browser.
 
 ## Run from source
 
