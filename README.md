@@ -25,7 +25,32 @@ Full credit to the DMI team and contributors for the original tool and the groun
 
 That's it for drivers: this project relies on Selenium's built-in **Selenium Manager** (standard since Selenium 4.6+), which detects your installed Firefox and downloads the matching `geckodriver` automatically the first time the app runs. Nothing to download or put on your PATH by hand.
 
-## Setup and running
+## Install a ready-made build (no Python needed)
+
+Prebuilt installers are attached to each [release](https://github.com/tomkuncoro-yk/GAOS/releases/latest). Firefox still needs to be installed separately either way — Selenium downloads the matching `geckodriver` itself the first time the app runs.
+
+Neither installer is digitally signed (that requires a paid developer certificate on both platforms, which isn't set up for this project), so both Windows and macOS will show a one-time warning before letting you run it. That warning is normal for small, free, independently-distributed tools — it isn't a sign anything is actually wrong — but here's how to get past it on each platform:
+
+**Windows**
+
+1. Download `GoogleAIOverviewScraperSetup.exe` from the release page.
+2. Double-click it. Windows SmartScreen will likely show a blue "Windows protected your PC" screen, because the installer isn't from a registered publisher.
+3. Click **More info**, then **Run anyway**.
+4. Follow the setup wizard (Next → Next → Install). It adds a Start Menu shortcut and a normal uninstaller.
+
+**macOS**
+
+1. Download `GoogleAIOverviewScraper.dmg` from the release page.
+2. Double-click it to mount the disk image, then drag the app into **Applications**.
+3. First launch: Gatekeeper will block it, either with "cannot be opened because the developer cannot be verified" or (on newer macOS) "is damaged and can't be opened" — despite the wording, the app isn't actually damaged, this is just Gatekeeper's blanket message for unsigned apps. Fix it one of two ways:
+   - **Right-click** (or Control-click) the app in Applications → **Open** → confirm **Open** in the dialog that appears. Only needed once.
+   - If that still refuses it, open **Terminal** and run:
+     ```bash
+     xattr -cr /Applications/GoogleAIOverviewScraper.app
+     ```
+     then try opening it again.
+
+## Run from source
 
 ```bash
 git clone https://github.com/tomkuncoro-yk/GAOS.git
