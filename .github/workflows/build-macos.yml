@@ -18,6 +18,13 @@ on:
 jobs:
   build-dmg:
     runs-on: macos-latest
+    # The release-upload step below needs write access to this repo's
+    # contents (to create/attach to a release). GitHub defaults new repos'
+    # workflow token to read-only, so without this the step fails with a
+    # 403 -- this grants write, scoped only to this one repo, only for the
+    # lifetime of this job.
+    permissions:
+      contents: write
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -44,7 +51,11 @@ jobs:
 
       - name: Attach .dmg to the GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        # Pinned to the exact commit the "v2" tag currently points to
+        # (v2.6.2), rather than the floating "v2" tag, so this workflow
+        # can't silently start running different/unexpected upstream code
+        # later if that tag is ever moved.
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: dist/GoogleAIOverviewScraper.dmg
         env:
