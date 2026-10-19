@@ -115,7 +115,9 @@ def build_dmg():
             "hdiutil", "create",
             "-volname", APP_NAME,
             "-srcfolder", staging_dir,
-            "-ov", "-format", "UDZO",
+            # bzip2 compression -- noticeably smaller than the default
+            # UDZO (zlib), at the cost of a somewhat slower build.
+            "-ov", "-format", "UDBZ",
             dmg_path,
         ],
         check=True,
