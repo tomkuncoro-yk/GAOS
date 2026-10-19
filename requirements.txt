@@ -1,0 +1,4 @@
+nicegui>=1.4,<2.0
+selenium>=4.15
+requests>=2.31
+markdownify>=0.11

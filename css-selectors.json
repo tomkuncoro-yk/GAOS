@@ -1,0 +1,19 @@
+{
+    "_notes": "Edit these if Google changes its markup and the scraper stops finding things. There is deliberately NO 'ao_claim' selector here -- claim-matching is done in Python by walking up from the exact hovered source badge (see get_claims() in google_ai_overview_scraper.py), because Google does not reliably mark 'the currently hovered claim' with any stable attribute.",
+    "ao_container": "#eKIzJc",
+    "ao_show_more": "div[aria-controls='m-x-content']",
+    "ao_failed_elements": ".YWpX0d[style='']",
+    "ao_inner_text": "div[data-container-id='main-col']",
+    "ao_source_badge": "button[data-amic='true']",
+    "ao_main_claim": "div > mark[jsuid][data-sfc-root]",
+    "ao_claim_source_box": "div[data-skip-highlighting] div[data-src-id][data-crb-el]",
+    "ao_show_more_urls": "#rw0ISc",
+    "ao_url_divs": "div[dir][tabindex] ul > li",
+    "ao_url_divs_not_expandable": "ul > li > div[data-src-id]",
+    "ao_url_divs_carousel": "div[role='listitem'] > div[data-src-id]",
+    "ao_url_title": "div[id]",
+    "ao_url_description": "span[data-crb-snippet-text]",
+    "ao_url_description_fallback": ".dMCttd",
+    "ao_disclaimer": "div:has(> a[href*=\"p=ai_overviews\"])",
+    "ao_prompt_input": "div[data-active='input-plate-active']"
+}

@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# PyInstaller build output (regenerate with build_windows.bat / build_mac.command)
+build/
+dist/
+*.spec
+
+# Stray download artifact from a one-off Inno Setup install attempt, if present
+_innosetup_installer.exe
+
+# OS cruft
+.DS_Store
+Thumbs.db
