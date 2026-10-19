@@ -10,14 +10,6 @@ A desktop GUI tool (built with [NiceGUI](https://nicegui.io/) + Selenium/Firefox
 
 Optionally, it can also save a raw HTML snapshot of each cited source page and a screenshot of the AI Overview itself, for later manual verification if Google changes its markup.
 
-## Credit
-
-This tool owes its existence to **Kenniskrabber**, the excellent AI Overview/AI Mode scraper built by the [Digital Methods Initiative (DMI)](https://digitalmethods.net/): https://github.com/digitalmethodsinitiative/kenniskrabber.
-
-Kenniskrabber is the reference this project was built from and tested against. This is a separate, from-scratch codebase rather than a fork, built to focus specifically on AI Overview claims and sources. To match each cited source back to the specific claim it supports, GAOS hovers each source badge and walks up the DOM from that *exact* badge element to find its enclosing claim, using Google's own per-segment `data-hveid` attribute as the anchor.
-
-Full credit to the DMI team and contributors for the original tool and the groundwork it lays out.
-
 ## Requirements
 
 - Python 3.10+
@@ -25,11 +17,9 @@ Full credit to the DMI team and contributors for the original tool and the groun
 
 That's it for drivers: this project relies on Selenium's built-in **Selenium Manager** (standard since Selenium 4.6+), which detects your installed Firefox and downloads the matching `geckodriver` automatically the first time the app runs. Nothing to download or put on your PATH by hand.
 
-## Install a ready-made build (no Python needed)
+## Installation instructions
 
-Prebuilt installers are attached to each [release](https://github.com/tomkuncoro-yk/GAOS/releases/latest). Firefox still needs to be installed separately either way — Selenium downloads the matching `geckodriver` itself the first time the app runs.
-
-Neither installer is digitally signed (that requires a paid developer certificate on both platforms, which isn't set up for this project), so both Windows and macOS will show a one-time warning before letting you run it. That warning is normal for small, free, independently-distributed tools — it isn't a sign anything is actually wrong — but here's how to get past it on each platform:
+Prebuilt installers are attached to each [release](https://github.com/tomkuncoro-yk/GAOS/releases/latest). Firefox still needs to be installed separately either way.
 
 **Windows**
 
@@ -67,6 +57,14 @@ python main.py
 ```
 
 A native app window opens. Solve any CAPTCHA that appears in the Firefox window that launches, then click "Start scraping" in the app window.
+
+## Credit
+
+This tool owes its existence to **Kenniskrabber**, the excellent AI Overview/AI Mode scraper built by the [Digital Methods Initiative (DMI)](https://digitalmethods.net/): https://github.com/digitalmethodsinitiative/kenniskrabber.
+
+Kenniskrabber is the reference this project was built from and tested against. This is a separate, from-scratch codebase rather than a fork, built to focus specifically on AI Overview claims and sources. To match each cited source back to the specific claim it supports, GAOS hovers each source badge and walks up the DOM from that *exact* badge element to find its enclosing claim, using Google's own per-segment `data-hveid` attribute as the anchor.
+
+Full credit to the DMI team and contributors for the original tool and the groundwork it lays out.
 
 ## Output
 
