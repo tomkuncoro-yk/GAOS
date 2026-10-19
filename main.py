@@ -15,18 +15,14 @@ A GUI tool (built with NiceGUI + Selenium/Firefox) that collects Google
 This tool owes its existence to "Kenniskrabber", the excellent AI
 Overview/AI Mode scraper built by the Digital Methods Initiative (DMI):
 https://github.com/digitalmethodsinitiative/kenniskrabber. Kenniskrabber
-is the reference this project was built from and tested against, and
-its approach to nearly everything else here -- the overall GUI layout,
-the CSS-selectors-as-config pattern, consent/CAPTCHA handling, output
-format -- carries over directly. This is a separate, from-scratch
-codebase rather than a fork, built to focus specifically on AI
-Overview claims and sources, and it takes a different approach to
-claim-matching: where Kenniskrabber looks for a selector marking "the
-currently hovered claim", this scraper hovers each source badge and
-walks UP the DOM from that *exact* badge element to find its own
-enclosing claim, using Google's own per-segment `data-hveid` attribute
-as the anchor. Full credit to the DMI team and contributors for the
-original tool and the groundwork it lays out.
+is the reference this project was built from and tested against. This
+is a separate, from-scratch codebase rather than a fork, built to
+focus specifically on AI Overview claims and sources. To match each
+cited source back to the specific claim it supports, this scraper
+hovers each source badge and walks UP the DOM from that *exact* badge
+element to find its enclosing claim, using Google's own per-segment
+`data-hveid` attribute as the anchor. Full credit to the DMI team and
+contributors for the original tool and the groundwork it lays out.
 
 Requirements
 ------------
