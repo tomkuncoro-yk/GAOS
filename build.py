@@ -71,6 +71,27 @@ def run_pyinstaller():
         "--collect-all", "webview",
     ]
 
+    if IS_MAC:
+        # pywebview's macOS backend (webview.platforms.cocoa) bridges to
+        # Cocoa/WebKit through PyObjC, which does its importing at
+        # runtime (objc.loadBundle and friends) rather than through
+        # normal Python imports PyInstaller's static analysis can see.
+        # Without these explicit hints, the frozen app can end up with
+        # no working native-window backend at all even when pywebview
+        # itself is installed -- ui.run(native=True) then fails
+        # immediately with "Native mode is not supported in this
+        # configuration", which looks exactly like the app opening and
+        # instantly closing, since no window ever actually appears.
+        args += [
+            "--hidden-import", "webview.platforms.cocoa",
+            "--hidden-import", "objc",
+            "--hidden-import", "Foundation",
+            "--hidden-import", "AppKit",
+            "--hidden-import", "WebKit",
+            "--hidden-import", "Quartz",
+            "--collect-all", "objc",
+        ]
+
     assets_dir = os.path.join(BASE_DIR, "assets")
     if os.path.isdir(assets_dir):
         args += ["--add-data", f"assets{separator}assets"]
