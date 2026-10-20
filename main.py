@@ -689,16 +689,29 @@ class GoogleAIOverviewScraper:
         regardless of whatever else Google's markup does elsewhere on
         the page.
 
-        The claim "container" to climb to is the nearest ancestor
-        carrying a `data-hveid` attribute (Google's own per-segment
-        id), starting the search from the badge's *parent* -- the
-        badge itself also carries `data-hveid`, so starting from the
-        badge would just match itself and return empty/near-empty
-        text. This covers both bulleted claims (wrapped in an `<li
-        data-hveid=...>`) and the lead-in sentence, which has no `<li>`
-        or `<p>` wrapper at all but does have a `data-hveid` div a few
-        levels up -- a case the earlier `.closest('li') || closest('p')`
-        approach missed, producing an empty `"claim": ""` entry.
+        The claim "container" to climb to is the enclosing `<li>` for a
+        bulleted claim, since that's the actual boundary of one claim
+        regardless of how Google nests `data-hveid` wrappers inside it
+        (the badge's immediate parent sometimes carries its own, narrower
+        `data-hveid`, e.g. on the citation button itself -- climbing to
+        just the first `data-hveid` ancestor can stop there instead of
+        reaching the whole bullet). For the lead-in sentence, which has
+        no `<li>` wrapper at all, we fall back to the nearest ancestor
+        carrying a `data-hveid` attribute, starting from the badge's
+        *parent* (the badge itself also carries `data-hveid`, so
+        starting from the badge would just match itself).
+
+        Once that container is found, its text is read via
+        `textContent` rather than by walking leaf elements: Google is
+        inconsistent about whether the sentence after a bullet's bold
+        lead-in phrase gets its own wrapper element or is left as a bare
+        text node, and both forms appear within the same answer. Reading
+        only leaf elements misses bare text nodes outright, silently
+        truncating the claim to just its heading whenever Google omits
+        the wrapper -- `textContent` picks up both forms uniformly. The
+        citation badge/button is stripped from a clone first so its own
+        link labels (e.g. "National Geographic +2") don't leak into the
+        claim text.
         """
         sel = self.selectors
         claims = []
@@ -724,25 +737,62 @@ class GoogleAIOverviewScraper:
                     claim_text = self.driver.execute_script(
                         """
                         const badge = arguments[0];
-                        // Walk up to the nearest ancestor carrying Google's
-                        // own per-segment data-hveid id. Start from the
-                        // badge's PARENT, since the badge itself also has
-                        // a data-hveid and would otherwise match first.
-                        let root = badge.parentElement;
-                        while (root && !root.hasAttribute('data-hveid')) {
-                            root = root.parentElement;
+                        const scopeRoot = arguments[1];
+
+                        // Prefer the enclosing <li> if there is one -- that's
+                        // the actual boundary of a bulleted claim. Google
+                        // sometimes nests a SECOND, narrower data-hveid
+                        // wrapper inside the <li> that covers only the bold
+                        // lead-in phrase before the colon (e.g. "Rising
+                        // Temperatures:"), separate from the wrapper around
+                        // the rest of the sentence. Climbing to just the
+                        // first data-hveid ancestor can land on that inner
+                        // wrapper instead of the whole bullet, cutting the
+                        // claim short and losing its sources (the actual
+                        // citation badge/popup is scoped to the sentence
+                        // that follows, not the heading alone). Bounded to
+                        // scopeRoot so this can't accidentally climb out of
+                        // the AI Overview box into some unrelated page <li>.
+                        let root = badge.closest('li');
+                        if (root && !scopeRoot.contains(root)) {
+                            root = null;
+                        }
+
+                        if (!root) {
+                            // No enclosing <li> -- this is the lead-in
+                            // sentence, which has no <li> wrapper at all.
+                            // Fall back to the nearest ancestor carrying
+                            // Google's own per-segment data-hveid id,
+                            // starting from the badge's PARENT (the badge
+                            // itself also has a data-hveid and would
+                            // otherwise match first).
+                            root = badge.parentElement;
+                            while (root && !root.hasAttribute('data-hveid')) {
+                                root = root.parentElement;
+                            }
                         }
                         if (!root) return '';
-                        const parts = [];
-                        root.querySelectorAll('*').forEach(el => {
-                            if (el.children.length === 0 && !el.closest('button')) {
-                                const text = el.textContent.trim();
-                                if (text) parts.push(text);
-                            }
-                        });
-                        return parts.join(' ');
+                        // Google is inconsistent about whether the text
+                        // after the bold lead-in phrase gets its own
+                        // wrapper element or is left as a bare text node
+                        // (e.g. "<strong>Rising Temperatures:</strong> The
+                        // global average..." with no wrapper, vs.
+                        // "<strong>Melting Ice...:</strong><div>Glaciers
+                        // and...</div>" with one) -- both appear in the
+                        // SAME answer. Walking only leaf ELEMENTS misses
+                        // bare text nodes entirely, truncating the claim to
+                        // just its heading whenever Google omits the
+                        // wrapper. Clone the subtree, strip out the
+                        // citation badge/button (so its link labels like
+                        // "National Geographic +2" don't leak into the
+                        // claim text), and read textContent -- that picks
+                        // up every text node, wrapped or not.
+                        const clone = root.cloneNode(true);
+                        clone.querySelectorAll('button').forEach(b => b.remove());
+                        return clone.textContent.replace(/\\s+/g, ' ').trim();
                         """,
                         link_badge,
+                        ai_overview_root,
                     )
 
                     claim_sources = []
@@ -880,14 +930,30 @@ class GoogleAIOverviewScraper:
             rows = [json.loads(line) for line in in_json if line.strip()]
         if not rows:
             return
+
         for row in rows:
-            row["sources"] = self.list_to_string(row.get("sources"))
-            row["claims"] = self.claims_to_string(row.get("claims"))
-        fieldnames = list(rows[0].keys())
+            claims = row.get("claims") or []
+            if claims:
+                # The DOM-scraped `main_answer` is often cut off mid-sentence
+                # by Google's own markup (see get_claims() for why). The
+                # first claim covers the same answer but captured in full,
+                # with its source(s) attached, so use that for a main_answer
+                # column that actually reads as a complete sentence.
+                row["main_answer"] = self.format_claim(claims[0])
+            row["claims"] = self.claims_to_string(claims)
+
+            # The top-level "sources" list is the same bottom-of-answer
+            # citations that are already attached to their specific claims
+            # in the "claims" column -- dropped here rather than duplicated
+            # into its own column.
+            row.pop("sources", None)
+
+        fieldnames = [k for k in rows[0].keys() if k != "sources"]
         for row in rows[1:]:
             for k in row:
-                if k not in fieldnames:
+                if k != "sources" and k not in fieldnames:
                     fieldnames.append(k)
+
         # utf-8-sig (adds a BOM) rather than plain utf-8: Excel on Windows
         # has no reliable way to autodetect a BOM-less UTF-8 CSV, so without
         # it, Excel falls back to the system codepage (cp1252) and renders
@@ -901,22 +967,17 @@ class GoogleAIOverviewScraper:
         self.log(f"Wrote {csv_path}", classes="text-blue")
 
     @staticmethod
-    def list_to_string(sources) -> str:
-        if not sources:
-            return ""
-        return "\n".join(f"{s.get('title', '')}: {s.get('description', '')} - {s.get('url', '')}" for s in sources)
+    def format_claim(c) -> str:
+        src_str = "; ".join(
+            f"{s.get('title', '')} ({s.get('url', '')})" for s in c.get("sources", [])
+        )
+        return f"{c.get('claim', '')} [{src_str}]"
 
-    @staticmethod
-    def claims_to_string(claims) -> str:
+    @classmethod
+    def claims_to_string(cls, claims) -> str:
         if not claims:
             return ""
-        lines = []
-        for c in claims:
-            src_str = "; ".join(
-                f"{s.get('title', '')} ({s.get('url', '')})" for s in c.get("sources", [])
-            )
-            lines.append(f"{c.get('claim', '')} [{src_str}]")
-        return "\n".join(lines)
+        return "\n".join(cls.format_claim(c) for c in claims)
 
     # ------------------------------------------------------------------
     # Misc helpers
