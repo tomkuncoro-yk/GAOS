@@ -66,9 +66,39 @@ import random
 import re
 import sys
 import time
+import traceback
 from datetime import datetime
 from typing import Callable, Optional
 from urllib.parse import urljoin, urlparse, parse_qs
+
+# --- Crash logging for packaged builds -----------------------------------
+# A packaged .app/.exe has no console attached, so stdout/stderr normally
+# go nowhere -- if anything raises before the window opens (a bundled
+# dependency that didn't make it into the build, a resource path that
+# resolves differently inside the .app bundle than it does when running
+# from source, etc.) the process just exits and it *looks* like the
+# window "opens and immediately closes", with nothing to go on. When
+# frozen, redirect stdout/stderr to a log file and install an excepthook
+# that writes any uncaught exception's full traceback there before the
+# process exits, so a report like that comes with an actual log instead
+# of nothing. This has to run before the heavier third-party imports
+# below (nicegui, selenium, ...), since a packaging problem is most
+# likely to surface as one of THOSE imports failing.
+LOG_PATH = None
+if getattr(sys, "frozen", False):
+    log_dir = os.path.join(os.path.expanduser("~"), "Documents", "GoogleAIOverviewScraper", "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    LOG_PATH = os.path.join(log_dir, "latest.log")
+    _log_file = open(LOG_PATH, "a", buffering=1, encoding="utf-8")
+    sys.stdout = _log_file
+    sys.stderr = _log_file
+    print(f"\n=== Started {datetime.now().isoformat()} ===", flush=True)
+
+    def _log_uncaught(exc_type, exc_value, exc_tb):
+        traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
+        sys.stderr.flush()
+
+    sys.excepthook = _log_uncaught
 
 import requests
 from nicegui import app, ui, run
