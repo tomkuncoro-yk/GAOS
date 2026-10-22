@@ -1,0 +1,181 @@
+name: Build installers
+
+# Runs on GitHub's own macOS and Windows runners, so you never need a
+# physical Mac or a dedicated Windows build box -- PyInstaller can't
+# cross-compile, but each OS's build happens on a real machine of that OS
+# in the cloud instead.
+#
+# Trigger it either way:
+#   - Push a tag like "v1.0" to also attach both installers to a GitHub Release.
+#   - Or run it manually from the repo's "Actions" tab (no tag needed) --
+#     both installers are then downloadable from that run's "Artifacts" section.
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    # The release-upload step below needs write access to this repo's
+    # contents (to create/attach to a release). GitHub defaults new repos'
+    # workflow token to read-only, so without this the step fails with a
+    # 403 -- this grants write, scoped only to this one repo, only for the
+    # lifetime of this job.
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build .dmg
+        run: python build.py
+
+      - name: Run the built app and capture everything it logs
+        # Always runs (even when the build above succeeded cleanly), not
+        # just as a crash check -- this launches the freshly built .app
+        # directly (bypassing the .dmg/Finder step, which isn't
+        # meaningfully different for this check), lets it run for a bit,
+        # then stops it. Both its own stdout/stderr AND main.py's
+        # crash-logging file (written to
+        # ~/Documents/SearchEnginesAIOverviewer/logs/latest.log in any
+        # frozen/packaged build) are saved so the "Upload run logs" step
+        # below can hand you a downloadable artifact with everything that
+        # happened on this run, pass or fail.
+        if: always()
+        run: |
+          mkdir -p run-logs
+          APP="dist/SearchEnginesAIOverviewer.app/Contents/MacOS/SearchEnginesAIOverviewer"
+          if [ ! -f "$APP" ]; then
+            echo "::error::Expected app executable not found at $APP"
+            echo "Expected app executable not found at $APP" > run-logs/stdout_stderr.log
+            exit 1
+          fi
+
+          "$APP" > run-logs/stdout_stderr.log 2>&1 &
+          APP_PID=$!
+          sleep 10
+
+          if kill -0 "$APP_PID" 2>/dev/null; then
+            echo "App is still running after 10s -- looks like a clean startup."
+            kill "$APP_PID" 2>/dev/null || true
+          else
+            echo "::error::The app exited within 10s of starting -- this usually means it crashed on launch."
+            echo "CRASHED: exited within 10s of starting" >> run-logs/stdout_stderr.log
+          fi
+
+      - name: Collect main.py's own crash-log file too
+        if: always()
+        run: |
+          mkdir -p run-logs
+          LOG="$HOME/Documents/SearchEnginesAIOverviewer/logs/latest.log"
+          if [ -f "$LOG" ]; then
+            cp "$LOG" run-logs/app_latest.log
+          else
+            echo "No log file was created -- app may have crashed before logging was set up, or this run never got that far." > run-logs/app_latest.log
+          fi
+
+      - name: Fail the job if the run logs show a crash
+        if: always()
+        run: |
+          if grep -q "CRASHED" run-logs/stdout_stderr.log 2>/dev/null; then
+            echo "----- stdout/stderr -----"
+            cat run-logs/stdout_stderr.log
+            echo "----- app_latest.log -----"
+            cat run-logs/app_latest.log
+            exit 1
+          fi
+
+      - name: Upload run logs as a workflow artifact
+        # Uploaded every time (if: always()), pass or fail, so you can
+        # always open this run's Artifacts section and see exactly what
+        # the app printed/logged -- not just when something crashed.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-run-logs
+          path: run-logs/
+          if-no-files-found: warn
+
+      - name: Upload .dmg as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SearchEnginesAIOverviewer-dmg
+          path: dist/SearchEnginesAIOverviewer.dmg
+
+      - name: Attach .dmg to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        # Pinned to the exact commit the "v2" tag currently points to
+        # (v2.6.2), rather than the floating "v2" tag, so this workflow
+        # can't silently start running different/unexpected upstream code
+        # later if that tag is ever moved.
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          files: dist/SearchEnginesAIOverviewer.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Install Inno Setup
+        # build.py's build_windows_installer() needs ISCC.exe on the build
+        # machine -- GitHub's windows-latest runners come with Chocolatey
+        # preinstalled, so this is the one extra line it needs.
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        run: python build.py
+
+      - name: Check the installer was actually produced
+        shell: bash
+        run: |
+          EXE="dist/SearchEnginesAIOverviewerSetup.exe"
+          if [ ! -f "$EXE" ]; then
+            echo "::error::Expected installer not found at $EXE"
+            exit 1
+          fi
+          echo "Installer built: $EXE ($(stat -c%s "$EXE" 2>/dev/null || stat -f%z "$EXE") bytes)"
+
+      - name: Upload installer as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SearchEnginesAIOverviewerSetup-exe
+          path: dist/SearchEnginesAIOverviewerSetup.exe
+
+      - name: Attach installer to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          files: dist/SearchEnginesAIOverviewerSetup.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

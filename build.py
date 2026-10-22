@@ -8,7 +8,7 @@ cross-compile) -- run build_windows.bat on Windows to get the Windows
 output, and build_mac.command on a Mac to get the macOS output.
 
 Output:
-    Windows -> dist/GoogleAIOverviewScraperSetup.exe
+    Windows -> dist/SearchEnginesAIOverviewerSetup.exe
                A normal click-through installer (built with Inno Setup):
                it installs the app under Program Files, adds a Start
                Menu shortcut, and registers a proper uninstaller in
@@ -16,8 +16,8 @@ Output:
                installed on THIS build machine once -- see the
                [ERROR] message below for the link if it's missing.
                (Only the build machine needs Inno Setup; the people you
-               hand GoogleAIOverviewScraperSetup.exe to don't.)
-    macOS   -> dist/GoogleAIOverviewScraper.dmg
+               hand SearchEnginesAIOverviewerSetup.exe to don't.)
+    macOS   -> dist/SearchEnginesAIOverviewer.dmg
                A disk image: double-click it, then drag the app onto
                the Applications shortcut inside, same as any normal
                Mac app you'd download.
@@ -31,7 +31,7 @@ import subprocess
 import sys
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-APP_NAME = "GoogleAIOverviewScraper"
+APP_NAME = "SearchEnginesAIOverviewer"
 IS_MAC = platform.system() == "Darwin"
 
 
