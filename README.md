@@ -1,12 +1,6 @@
 # Search Engines AI Overviewer
 
-A desktop GUI tool (built with [NiceGUI](https://nicegui.io/) + Selenium/Firefox) that collects Google "AI Overview" answers for a list of search queries, including:
-
-- the full AI Overview answer text
-- the single highlighted "main answer" claim
-- the list of sources shown at the bottom of the AI Overview
-- the individual bullet-point claims inside the answer, each paired with the specific source(s) cited for that claim
-- the "AI responses may include mistakes" disclaimer text
+Desktop GUI (NiceGUI + Selenium/Firefox) that scrapes AI answer-box content — claims, sources, and disclaimer text — from Google AI Overview, Bing Copilot/AI Overview, and DuckDuckGo DuckAssist. Bing doesn’t always generate an AI answer for a given query; when it doesn’t, the scraper just records nothing for that query and keeps going.
 
 Optionally, it can also save a raw HTML snapshot of each cited source page and a screenshot of the AI Overview itself, for later manual verification if Google changes its markup.
 
