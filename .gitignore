@@ -14,3 +14,20 @@ _innosetup_installer.exe
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# IDE project settings (local to each machine)
+.idea/
+
+# Local-only installer-building helpers -- kept on disk so you can still
+# build the Windows installer and run things locally, but deliberately NOT
+# pushed to the public repo. build.py, requirements.txt, assets/icon.icns,
+# and .github/workflows/build-macos.yml still ARE tracked/pushed, since
+# GitHub Actions needs them in the repo to build the mac .dmg in the cloud.
+installer.iss
+build_windows.bat
+install_windows.bat
+run_windows.bat
+build_mac.command
+install_mac.command
+run_mac.command
+assets/icon.ico

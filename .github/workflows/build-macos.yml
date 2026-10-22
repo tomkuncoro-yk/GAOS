@@ -1,14 +1,17 @@
-name: Build installers
+name: Build macOS .dmg
 
-# Runs on GitHub's own macOS and Windows runners, so you never need a
-# physical Mac or a dedicated Windows build box -- PyInstaller can't
-# cross-compile, but each OS's build happens on a real machine of that OS
-# in the cloud instead.
+# Runs on GitHub's macOS runners, so you never need a physical Mac to
+# produce the .dmg -- PyInstaller + hdiutil can't cross-compile, but
+# they work fine when the build itself happens on a real Mac in the cloud.
+#
+# The Windows installer is NOT built here -- it's built locally with
+# build_windows.bat and pushed to GitHub as a release asset by hand (see
+# the "gh release upload" step in README.md / the release instructions).
 #
 # Trigger it either way:
-#   - Push a tag like "v1.0" to also attach both installers to a GitHub Release.
+#   - Push a tag like "v1.0" to also attach the .dmg to a GitHub Release.
 #   - Or run it manually from the repo's "Actions" tab (no tag needed) --
-#     both installers are then downloadable from that run's "Artifacts" section.
+#     the .dmg is then downloadable from that run's "Artifacts" section.
 
 on:
   workflow_dispatch: {}
@@ -17,7 +20,7 @@ on:
       - "v*"
 
 jobs:
-  build-mac:
+  build-dmg:
     runs-on: macos-latest
     # The release-upload step below needs write access to this repo's
     # contents (to create/attach to a release). GitHub defaults new repos'
@@ -125,57 +128,5 @@ jobs:
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: dist/SearchEnginesAIOverviewer.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-windows:
-    runs-on: windows-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
-
-      - name: Install Inno Setup
-        # build.py's build_windows_installer() needs ISCC.exe on the build
-        # machine -- GitHub's windows-latest runners come with Chocolatey
-        # preinstalled, so this is the one extra line it needs.
-        run: choco install innosetup -y --no-progress
-
-      - name: Build installer
-        run: python build.py
-
-      - name: Check the installer was actually produced
-        shell: bash
-        run: |
-          EXE="dist/SearchEnginesAIOverviewerSetup.exe"
-          if [ ! -f "$EXE" ]; then
-            echo "::error::Expected installer not found at $EXE"
-            exit 1
-          fi
-          echo "Installer built: $EXE ($(stat -c%s "$EXE" 2>/dev/null || stat -f%z "$EXE") bytes)"
-
-      - name: Upload installer as a workflow artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SearchEnginesAIOverviewerSetup-exe
-          path: dist/SearchEnginesAIOverviewerSetup.exe
-
-      - name: Attach installer to the GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
-        with:
-          files: dist/SearchEnginesAIOverviewerSetup.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
